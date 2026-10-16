@@ -198,7 +198,7 @@ footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
       <table>
         <thead><tr><th>Attribute</th>{% for b in browsers %}<th>{{ b.name }}</th>{% endfor %}</tr></thead>
         <tbody>
-        {% for attr, label in [('canvasNoisy', 'Canvas randomised'), ('audioNoisy', 'Audio randomised'), ('webglUnmasked', 'GPU model exposed'), ('webglRenderer', 'WebGL renderer'), ('deviceMemory', 'navigator.deviceMemory'), ('hardwareConcurrency', 'CPU cores reported'), ('highEntropyHints', 'UA client hints'), ('plugins', 'Plugins'), ('stableAcrossSessions', 'Same fingerprint in new session')] %}
+        {% for attr, label in [('canvasNoisy', 'Canvas randomised'), ('audioNoisy', 'Audio randomised'), ('webglUnmasked', 'GPU model exposed'), ('webglRenderer', 'WebGL renderer'), ('deviceMemory', 'navigator.deviceMemory'), ('hardwareConcurrency', 'CPU cores reported'), ('highEntropyHints', 'UA client hints'), ('stableAcrossSessions', 'Same fingerprint in new session')] %}
           <tr><td>{{ label }}</td>{% for b in browsers %}<td>{{ fingerprint.get(b.key, {}).get(attr, '—') }}</td>{% endfor %}</tr>
         {% endfor %}
           <tr><td>Fonts visible</td>{% for b in browsers %}<td>{{ fingerprint.get(b.key, {}).get('fonts', []) | length }}</td>{% endfor %}</tr>

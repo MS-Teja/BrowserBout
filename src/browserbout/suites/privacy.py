@@ -142,7 +142,6 @@ class PrivacySuite(Suite):
             "webgl_unmasked_gpu": bool(attrs["webglUnmasked"]),
             "device_memory": attrs["deviceMemory"] is not None,
             "ua_high_entropy_hints": bool(attrs["highEntropyHints"]),
-            "plugins": attrs["plugins"] > 0,
         }
         exposed = sum(surfaces.values())
         previous = ctx.artifacts.get("fingerprint", {}).get(ctx.browser)
