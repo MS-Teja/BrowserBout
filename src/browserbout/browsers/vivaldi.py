@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -17,6 +18,8 @@ from browserbout.config import Window
 
 _CACHE_DIR = Path.home() / ".cache" / "browserbout"
 _CHROMIUM_VERSION = re.compile(rb"\x00(1\d\d\.0\.\d{4}\.\d{1,4})\x00")
+# Vivaldi's interface is itself a web app served from this built-in extension.
+_UI_URL_PREFIX = "chrome-extension://mpognobbkildjkofajifpdfhcoklimli/"
 
 
 class Vivaldi(Browser):
@@ -90,8 +93,13 @@ class Vivaldi(Browser):
         return str(SeleniumManager().binary_paths(args)["driver_path"])
 
     def create_driver(self, window: Window) -> WebDriver:
-        service = Service(executable_path=self.chromedriver_path())
+        # chromedriver compares its own major version with the browser's reported version,
+        # which for Vivaldi is "8.x". We already matched the Chromium major, so skip that check.
+        service = Service(
+            executable_path=self.chromedriver_path(), service_args=["--disable-build-check"]
+        )
         self._profile_dir = tempfile.mkdtemp(prefix="bout-vivaldi-")
+        self._seed_profile(Path(self._profile_dir))
         opts = webdriver.ChromeOptions()
         opts.binary_location = str(self.binary)
         for arg in (
@@ -102,6 +110,34 @@ class Vivaldi(Browser):
         ):
             opts.add_argument(arg)
         return webdriver.Chrome(options=opts, service=service)
+
+    def _seed_profile(self, profile: Path) -> None:
+        """Mark the welcome screen as seen. Otherwise a fresh profile opens only Vivaldi's
+        internal welcome page and chromedriver finds no web tab to attach to."""
+        version = self.version()
+        prefs = {
+            "vivaldi": {
+                "startup": {
+                    "has_seen_welcome_page": True,
+                    "has_seen_feature": 1,
+                    "first_seen_version": version,
+                    "last_seen_version": version,
+                },
+                "welcome": {"read_pages": ["intro"]},
+            }
+        }
+        (profile / "Default").mkdir(parents=True, exist_ok=True)
+        (profile / "Default" / "Preferences").write_text(json.dumps(prefs))
+
+    def ui_handles(self, driver: WebDriver) -> set[str]:
+        current = driver.current_window_handle
+        ui = set()
+        for handle in driver.window_handles:
+            driver.switch_to.window(handle)
+            if str(driver.current_url).startswith(_UI_URL_PREFIX):
+                ui.add(handle)
+        driver.switch_to.window(current)
+        return ui
 
     def processes(self, driver: WebDriver) -> list[psutil.Process]:
         # chromedriver launches Vivaldi as its child, so the whole browser is its process tree.

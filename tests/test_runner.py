@@ -13,6 +13,8 @@ from browserbout.suites.base import Suite, SuiteContext, metric
 
 
 class FakeDriver:
+    window_handles: tuple[str, ...] = ()
+
     def set_window_rect(self, **_: Any) -> None: ...
     def quit(self) -> None: ...
 

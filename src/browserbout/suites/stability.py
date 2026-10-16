@@ -50,7 +50,7 @@ class StabilitySuite(Suite):
         cycle = 0
         while time.monotonic() - start < duration:
             cycle += 1
-            for handle in list(session.driver.window_handles):
+            for handle in session.tab_handles():
                 try:
                     session.driver.switch_to.window(handle)
                     t0 = time.perf_counter()
@@ -68,7 +68,7 @@ class StabilitySuite(Suite):
                     ctx.log(f"crash detected: {exc.msg}")
                     try:
                         session.driver.close()
-                        session.driver.switch_to.window(session.driver.window_handles[0])
+                        session.driver.switch_to.window(session.tab_handles()[0])
                     except (WebDriverException, IndexError):
                         # The whole browser went away: start over with a fresh session.
                         session.restart()

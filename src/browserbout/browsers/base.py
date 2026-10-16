@@ -59,6 +59,10 @@ class Browser(ABC):
     def processes(self, driver: WebDriver) -> list[psutil.Process]:
         """All OS processes belonging to the automated browser instance."""
 
+    def ui_handles(self, driver: WebDriver) -> set[str]:
+        """Window handles that belong to the browser's own UI rather than web tabs."""
+        return set()
+
     def cleanup(self) -> None:  # noqa: B027 - optional hook
         """Remove anything create_driver left behind (temp profiles, ...)."""
 
@@ -72,12 +76,21 @@ class Session:
     def __init__(self, browser: Browser, window: Window) -> None:
         self.browser = browser
         self.window = window
+        self._ui_handles: set[str] = set()
         self.driver = self._start()
 
     def _start(self) -> WebDriver:
         driver = self.browser.create_driver(self.window)
+        self._ui_handles = self.browser.ui_handles(driver)
+        tabs = [h for h in driver.window_handles if h not in self._ui_handles]
+        if tabs:
+            driver.switch_to.window(tabs[0])
         driver.set_window_rect(x=0, y=0, width=self.window.width, height=self.window.height)
         return driver
+
+    def tab_handles(self) -> list[str]:
+        """Handles of real web tabs (excludes browser-UI documents some browsers expose)."""
+        return [h for h in self.driver.window_handles if h not in self._ui_handles]
 
     def processes(self) -> list[psutil.Process]:
         return self.browser.processes(self.driver)
