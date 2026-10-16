@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BrowserBout — {{ browsers | map(attribute='name') | join(' vs ') }}</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --good: #006300;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10); --good: #0ca30c;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10); --good: #0ca30c;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+main { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 64px; }
+h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 19px; margin: 40px 0 12px; }
+h3 { font-size: 15px; margin: 0 0 10px; }
+p, .meta { color: var(--ink-2); margin: 0; }
+.meta { font-size: 13px; }
+a { color: var(--series-1); }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.hero { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 24px; }
+.tile .label { color: var(--ink-2); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.tile .value { font-size: 40px; font-weight: 650; line-height: 1.1; margin-top: 6px; }
+.tile .sub { font-size: 13px; color: var(--muted); }
+.verdict .value { font-size: 30px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--ink-2); margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.grid2 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+/* Horizontal bar rows: label, track, value. */
+.metric { padding: 12px 0; border-top: 1px solid var(--grid); }
+.metric:first-of-type { border-top: 0; padding-top: 0; }
+.metric-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-bottom: 6px; flex-wrap: wrap; }
+.metric-head .name { font-weight: 600; color: var(--ink); }
+.metric-head .hint { color: var(--muted); }
+.metric.info .name::after { content: " · info"; color: var(--muted); font-weight: 400; }
+.bar-row { display: grid; grid-template-columns: 84px 1fr minmax(110px, auto); align-items: center; gap: 10px; margin: 3px 0; }
+.bar-row .who { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track { position: relative; height: 14px; border-left: 1px solid var(--axis); }
+.bar {
+  position: absolute; inset: 0 auto 0 0; border-radius: 0 4px 4px 0; min-width: 2px;
+  outline-offset: 2px;
+}
+.bar:hover, .bar:focus-visible { filter: brightness(1.12); }
+.val { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; white-space: nowrap; }
+.val.win { color: var(--ink); font-weight: 650; }
+.val.win::before { content: "✓ "; color: var(--good); }
+
+/* Tooltip */
+.bar[data-tip]:hover::after, .bar[data-tip]:focus-visible::after {
+  content: attr(data-tip); position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 2;
+  background: var(--ink); color: var(--surface); font-size: 12px; padding: 4px 8px;
+  border-radius: 6px; white-space: nowrap; pointer-events: none;
+}
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 13px; margin-top: 10px; }
+.notes li { color: var(--ink-2); font-size: 13px; }
+footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+@media (max-width: 520px) {
+  .bar-row { grid-template-columns: 64px 1fr; }
+  .bar-row .val { grid-column: 2; text-align: left; }
+  .tile .value { font-size: 32px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🥊 BrowserBout</h1>
+    <p>{{ browsers | map(attribute='label') | join(' vs ') }} — automated head-to-head on a real Mac.</p>
+    <p class="meta">{{ run.started_at.strftime('%Y-%m-%d %H:%M') }} · {{ run.mode }} mode ·
+      {{ run.machine.model }} ({{ run.machine.chip }}, {{ run.machine.memory_gb }} GB) ·
+      {{ run.machine.os_version }} · {{ run.machine.power_source }}</p>
+  </header>
+
+  <section class="hero" aria-label="Overall result">
+    <div class="card tile verdict">
+      <div class="label">Overall winner</div>
+      <div class="value">{% if winner %}🏆 {{ names[winner] }}{% else %}🤝 Tie{% endif %}</div>
+      {% if margin %}<div class="sub">by {{ margin }} points, weighted across {{ categories | selectattr('scores') | list | length }} categories</div>{% endif %}
+    </div>
+    {% for b in browsers %}
+    <div class="card tile">
+      <div class="label"><span class="swatch" style="background: var(--series-{{ b.slot }})"></span>{{ b.label }}</div>
+      <div class="value">{{ overall.get(b.key, '—') }}</div>
+      <div class="sub">overall score / 100</div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <h2>Category scores</h2>
+  <div class="card">
+    <p class="meta" style="margin-bottom: 10px">Best browser in each metric scores 100; the others score their ratio to it. Category = mean of its metrics.</p>
+    <div class="legend">{% for b in browsers %}<span><span class="swatch" style="background: var(--series-{{ b.slot }})"></span>{{ b.name }}</span>{% endfor %}</div>
+    {% for c in categories if c.scores %}
+    <div class="metric">
+      <div class="metric-head"><span class="name">{{ c.title }}</span><span class="hint">weight {{ c.weight }}{% if c.winner %} · {{ names[c.winner] }} wins{% else %} · tie{% endif %}</span></div>
+      {% for b in browsers %}
+      <div class="bar-row">
+        <span class="who">{{ b.name }}</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: {{ c.scores[b.key] }}%; background: var(--series-{{ b.slot }})" data-tip="{{ b.name }} · {{ c.title }}: {{ '%.1f' % c.scores[b.key] }} / 100"></div></div>
+        <span class="val{% if c.winner == b.key %} win{% endif %}">{{ '%.1f' % c.scores[b.key] }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% for c in categories %}
+  <h2>{{ c.title }}</h2>
+  <div class="card">
+    {% for m in c.metrics %}
+    <div class="metric{% if not m.scored %} info{% endif %}">
+      <div class="metric-head">
+        <span class="name">{{ m.label }}</span>
+        <span class="hint">{{ m.better }}{% if m.confidence %} · {{ m.confidence }} confidence{% endif %}</span>
+      </div>
+      {% for bar in m.bars %}{% set b = (browsers | selectattr('key', 'equalto', bar.browser) | first) %}
+      <div class="bar-row">
+        <span class="who">{{ b.name }}</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: {{ bar.pct }}%; background: var(--series-{{ b.slot }})" data-tip="{{ b.name }}: {{ bar.text }} (median of {{ bar.n }}){% if bar.score %} · score {{ bar.score }}{% endif %}"></div></div>
+        <span class="val{% if m.winner == bar.browser %} win{% endif %}">{{ bar.text }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if c.key == 'pageload' and sites %}
+  <details>
+    <summary>Cold page load per site</summary>
+    <div class="card" style="margin-top: 10px">
+      {% for s in sites %}
+      <div class="metric">
+        <div class="metric-head"><span class="name">{{ s.site }}</span><span class="hint">lower is better</span></div>
+        {% for bar in s.bars %}{% set b = (browsers | selectattr('key', 'equalto', bar.browser) | first) %}
+        <div class="bar-row">
+          <span class="who">{{ b.name }}</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: {{ bar.pct }}%; background: var(--series-{{ b.slot }})" data-tip="{{ b.name }} · {{ s.site }}: {{ bar.text }}"></div></div>
+          <span class="val{% if s.winner == bar.browser %} win{% endif %}">{{ bar.text }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+  {% if c.key == 'privacy' and fingerprint %}
+  <details>
+    <summary>Fingerprint details</summary>
+    <div class="card table-wrap" style="margin-top: 10px">
+      <table>
+        <thead><tr><th>Attribute</th>{% for b in browsers %}<th>{{ b.name }}</th>{% endfor %}</tr></thead>
+        <tbody>
+        {% for attr, label in [('canvasNoisy', 'Canvas randomised'), ('audioNoisy', 'Audio randomised'), ('webglUnmasked', 'GPU model exposed'), ('webglRenderer', 'WebGL renderer'), ('deviceMemory', 'navigator.deviceMemory'), ('hardwareConcurrency', 'CPU cores reported'), ('highEntropyHints', 'UA client hints'), ('plugins', 'Plugins'), ('stableAcrossSessions', 'Same fingerprint in new session')] %}
+          <tr><td>{{ label }}</td>{% for b in browsers %}<td>{{ fingerprint.get(b.key, {}).get(attr, '—') }}</td>{% endfor %}</tr>
+        {% endfor %}
+          <tr><td>Fonts visible</td>{% for b in browsers %}<td>{{ fingerprint.get(b.key, {}).get('fonts', []) | length }}</td>{% endfor %}</tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {% endif %}
+  {% endfor %}
+
+  {% if run.notes or run.errors %}
+  <h2>Notes</h2>
+  <div class="card"><ul class="notes">
+    {% for n in run.notes %}<li>{{ n }}</li>{% endfor %}
+    {% for e in run.errors %}<li>{{ names.get(e.browser, e.browser) }} · {{ e.suite }} · rep {{ e.rep + 1 }}: {{ e.message.splitlines()[0][:200] }}</li>{% endfor %}
+  </ul></div>
+  {% endif %}
+
+  {% if history %}
+  <h2>Run history</h2>
+  <div class="card table-wrap">
+    <table>
+      <thead><tr><th>Run</th><th>Mode</th><th>Versions</th><th>Winner</th><th>Scores</th></tr></thead>
+      <tbody>{% for h in history %}<tr><td>{{ h.date }}</td><td>{{ h.mode }}</td><td>{{ h.versions }}</td><td>{{ h.winner }}</td><td>{{ h.scores }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <footer>
+    Values are medians across repetitions; ± is half the interquartile range. Browsers run with clean default
+    profiles, alternating launch order each repetition. Generated by BrowserBout.
+  </footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,48 @@
+# BrowserBout run configuration.
+# Every per-mode value takes a `quick` and a `full` setting.
+
+window:
+  width: 1440
+  height: 900
+
+# Pause between browser launches so thermals and caches settle.
+cooldown_seconds: { quick: 2, full: 20 }
+
+# Page-load / privacy suites use the first N sites from sites.yaml (null = all).
+site_limit: { quick: 5, full: null }
+
+suites:
+  speed:
+    reps: { quick: 1, full: 3 }
+    benchmarks: [speedometer, jetstream, motionmark]
+    timeout_seconds: 1200
+
+  pageload:
+    reps: { quick: 1, full: 5 }
+    settle_seconds: 2
+    timeout_seconds: 45
+
+  resources:
+    reps: { quick: 1, full: 3 }
+    tabs: { quick: 5, full: 10 }
+    idle_seconds: { quick: 5, full: 20 }
+    sample_seconds: 5
+
+  privacy:
+    reps: { quick: 1, full: 3 }
+    settle_seconds: 3
+
+  stability:
+    reps: { quick: 1, full: 1 }
+    tabs: { quick: 6, full: 20 }
+    duration_minutes: { quick: 1, full: 15 }
+    hang_threshold_seconds: 5
+
+  battery:
+    # Battery is skipped in quick mode (0 reps). It must run unplugged.
+    reps: { quick: 0, full: 1 }
+    duration_minutes: { quick: 5, full: 30 }
+    # Muted, looping Big Buck Bunny (CC-BY Blender Foundation).
+    video_url: "https://www.youtube.com/embed/aqz-KE-bpKQ?autoplay=1&mute=1&loop=1&playlist=aqz-KE-bpKQ"
+    # Fraction of each loop spent on the video vs. browsing sites.
+    video_share: 0.5

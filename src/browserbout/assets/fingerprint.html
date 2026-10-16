@@ -1,0 +1,136 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>BrowserBout fingerprint probe</title>
+<p>Collecting fingerprintable attributes…</p>
+<script>
+// Collects the attributes fingerprinting scripts commonly use. BrowserBout reads
+// window.__fingerprint (a Promise) through WebDriver.
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+}
+
+function drawCanvas() {
+  const c = document.createElement('canvas');
+  c.width = 280; c.height = 60;
+  const ctx = c.getContext('2d');
+  ctx.textBaseline = 'top';
+  ctx.font = '16px Arial';
+  ctx.fillStyle = '#f60';
+  ctx.fillRect(100, 1, 62, 20);
+  ctx.fillStyle = '#069';
+  ctx.fillText('BrowserBout \u{1F94A} fingerprint', 2, 15);
+  ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+  ctx.fillText('BrowserBout \u{1F94A} fingerprint', 4, 17);
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = 'rgb(255,0,255)';
+  ctx.beginPath(); ctx.arc(50, 50, 50, 0, Math.PI * 2, true); ctx.closePath(); ctx.fill();
+  return c.toDataURL();
+}
+
+function webgl() {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl');
+    if (!gl) return { vendor: null, renderer: null, unmasked: false };
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return {
+      vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR),
+      renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+      unmasked: !!ext,
+    };
+  } catch (e) { return { vendor: null, renderer: null, unmasked: false }; }
+}
+
+async function audio() {
+  try {
+    const ctx = new OfflineAudioContext(1, 5000, 44100);
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle'; osc.frequency.value = 10000;
+    const comp = ctx.createDynamicsCompressor();
+    osc.connect(comp); comp.connect(ctx.destination); osc.start(0);
+    const buf = await ctx.startRendering();
+    const data = buf.getChannelData(0).slice(4500);
+    return sha256(Array.from(data).join(','));
+  } catch (e) { return null; }
+}
+
+// Fonts that may be installed on a Mac by the user or apps (not shipped with Safari's
+// fingerprinting-safe allow list). Detected by text-width differences vs. generic fallbacks.
+const FONTS = [
+  'Arial', 'Helvetica', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana', 'Menlo',
+  'Monaco', 'Avenir', 'Futura', 'Gill Sans', 'Optima', 'Baskerville', 'Didot', 'Palatino',
+  'Rockwell', 'Copperplate', 'Papyrus', 'Chalkboard', 'Marker Felt', 'SignPainter',
+  'Bradley Hand', 'Herculanum', 'Impact', 'Comic Sans MS', 'Trebuchet MS', 'Tahoma',
+  'Calibri', 'Cambria', 'Consolas', 'Segoe UI', 'Roboto', 'Open Sans', 'Lato', 'Montserrat',
+  'Source Code Pro', 'Fira Code', 'JetBrains Mono', 'SF Mono', 'Inter', 'Helvetica Neue',
+  'Microsoft Sans Serif', 'Wingdings', 'Webdings', 'Zapfino', 'Noteworthy', 'Phosphate',
+  'Luminari', 'Skia', 'Trattatello', 'Apple Chancery', 'Brush Script MT', 'Big Caslon',
+  'Hoefler Text', 'American Typewriter', 'Andale Mono', 'Arial Black', 'Arial Narrow',
+  'Ubuntu', 'DejaVu Sans',
+];
+
+function detectFonts() {
+  const span = document.createElement('span');
+  span.style.cssText = 'position:absolute;left:-9999px;font-size:72px;';
+  span.textContent = 'mmmmmmmmmmlliWW@#';
+  document.body.appendChild(span);
+  const base = {};
+  for (const generic of ['monospace', 'serif', 'sans-serif']) {
+    span.style.fontFamily = generic;
+    base[generic] = [span.offsetWidth, span.offsetHeight];
+  }
+  const found = [];
+  for (const font of FONTS) {
+    for (const generic of Object.keys(base)) {
+      span.style.fontFamily = `'${font}',${generic}`;
+      if (span.offsetWidth !== base[generic][0] || span.offsetHeight !== base[generic][1]) {
+        found.push(font); break;
+      }
+    }
+  }
+  span.remove();
+  return found;
+}
+
+async function collect() {
+  const canvasA = await sha256(drawCanvas());
+  const canvasB = await sha256(drawCanvas());
+  const gl = webgl();
+  const audioA = await audio();
+  const audioB = await audio();
+  const fonts = detectFonts();
+  let highEntropyHints = false;
+  if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+    try {
+      const v = await navigator.userAgentData.getHighEntropyValues(['platformVersion', 'model', 'fullVersionList']);
+      highEntropyHints = !!(v.platformVersion || (v.fullVersionList || []).length);
+    } catch (e) {}
+  }
+  const attrs = {
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    languages: navigator.languages,
+    hardwareConcurrency: navigator.hardwareConcurrency ?? null,
+    deviceMemory: navigator.deviceMemory ?? null,
+    maxTouchPoints: navigator.maxTouchPoints,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    screen: [screen.width, screen.height, screen.colorDepth, devicePixelRatio],
+    plugins: navigator.plugins ? navigator.plugins.length : 0,
+    canvas: canvasA,
+    canvasNoisy: canvasA !== canvasB,
+    webglVendor: gl.vendor,
+    webglRenderer: gl.renderer,
+    webglUnmasked: gl.unmasked,
+    audio: audioA,
+    audioNoisy: audioA !== audioB,
+    fonts,
+    highEntropyHints,
+  };
+  attrs.fingerprint = await sha256(JSON.stringify(attrs));
+  document.querySelector('p').textContent = 'Done: ' + attrs.fingerprint;
+  return attrs;
+}
+
+window.__fingerprint = collect();
+</script>

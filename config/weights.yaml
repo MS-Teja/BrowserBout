@@ -1,0 +1,9 @@
+# Category weights for the overall score. They don't need to sum to 100;
+# they are normalised over the categories that actually ran.
+weights:
+  speed: 25
+  pageload: 20
+  resources: 15
+  battery: 15
+  stability: 15
+  privacy: 10
