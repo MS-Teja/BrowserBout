@@ -35,18 +35,20 @@ def memory_mb(procs: list[psutil.Process]) -> float:
 
 def sample(get_procs: Callable[[], list[psutil.Process]], seconds: float) -> ResourceSample:
     """Measure total CPU% (100 = one core) over `seconds`, then current memory."""
-    procs = get_procs()
-    for p in procs:
+    # psutil keeps the CPU baseline on the Process *object*, so the second reading must use
+    # the same objects; get_procs() may return fresh ones (e.g. Process.children()).
+    baseline = {p.pid: p for p in get_procs()}
+    for p in baseline.values():
         with contextlib.suppress(psutil.Error):
             p.cpu_percent(None)
     time.sleep(seconds)
     procs_after = get_procs()
-    seen = {p.pid for p in procs}
     cpu = 0.0
     for p in procs_after:
         try:
-            # Processes that appeared mid-sample have no baseline; their first reading is 0.
-            cpu += p.cpu_percent(None) if p.pid in seen else 0.0
+            # Processes that appeared mid-sample have no baseline; they're not counted.
+            if p.pid in baseline:
+                cpu += baseline[p.pid].cpu_percent(None)
         except psutil.Error:
             continue
     return ResourceSample(

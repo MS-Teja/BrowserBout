@@ -1,6 +1,6 @@
 # 🥊 BrowserBout
 
-[![CI](https://github.com/OWNER/browserbout/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/browserbout/actions/workflows/ci.yml)
+[![CI](https://github.com/MS-Teja/BrowserBout/actions/workflows/ci.yml/badge.svg)](https://github.com/MS-Teja/BrowserBout/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -50,7 +50,7 @@ _No published results yet. Run `bout run --full` to generate them._
 Requirements: macOS, Python 3.11+, Safari and [Vivaldi](https://vivaldi.com) in `/Applications`.
 
 ```bash
-git clone https://github.com/OWNER/browserbout && cd browserbout
+git clone https://github.com/MS-Teja/BrowserBout && cd BrowserBout
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
