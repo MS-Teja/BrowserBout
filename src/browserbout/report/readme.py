@@ -22,23 +22,37 @@ START = "<!-- BOUT:START -->"
 END = "<!-- BOUT:END -->"
 
 
-def pages_url(repo_dir: Path) -> str | None:
-    """https://<user>.github.io/<repo>/ derived from the GitHub origin remote, if any."""
+def _origin_remote(repo_dir: Path) -> str | None:
     try:
-        remote = subprocess.run(
+        return subprocess.run(
             ["git", "-C", str(repo_dir), "remote", "get-url", "origin"],
             capture_output=True, text=True, check=True,
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         return None
-    return github_pages_url(remote)
+
+
+def _github_owner_repo(remote: str) -> tuple[str, str] | None:
+    match = re.search(r"github\.com[:/]([^/]+)/(.+?)(?:\.git)?/?$", remote)
+    return (match.group(1), match.group(2)) if match else None
+
+
+def pages_url(repo_dir: Path) -> str | None:
+    """https://<user>.github.io/<repo>/ derived from the GitHub origin remote, if any."""
+    remote = _origin_remote(repo_dir)
+    return github_pages_url(remote) if remote else None
+
+
+def github_repo_url(repo_dir: Path) -> str | None:
+    """https://github.com/<user>/<repo> for the origin remote, if it's on GitHub."""
+    remote = _origin_remote(repo_dir)
+    parts = _github_owner_repo(remote) if remote else None
+    return f"https://github.com/{parts[0]}/{parts[1]}" if parts else None
 
 
 def github_pages_url(remote: str) -> str | None:
-    match = re.search(r"github\.com[:/]([^/]+)/(.+?)(?:\.git)?/?$", remote)
-    if not match:
-        return None
-    return f"https://{match.group(1).lower()}.github.io/{match.group(2)}/"
+    parts = _github_owner_repo(remote)
+    return f"https://{parts[0].lower()}.github.io/{parts[1]}/" if parts else None
 
 
 def render_markdown(run: Run, card: Scorecard, dashboard_link: str | None = None) -> str:
@@ -88,11 +102,11 @@ def render_markdown(run: Run, card: Scorecard, dashboard_link: str | None = None
     lines += ["", "</details>", ""]
     for note in unscored_notes(run, card):
         lines += [f"> ⚠️ {note}", ""]
-    if run.notes or run.errors:
-        lines.append("Notes: " + " ".join(run.notes) + (
-            f" {len(run.errors)} step(s) failed; see the raw results." if run.errors else ""
-        ))
-        lines.append("")
+    notes = list(run.notes)
+    if run.errors:
+        notes.append(f"{len(run.errors)} step(s) failed; see the raw results.")
+    if notes:
+        lines += ["Notes: " + " ".join(notes), ""]
     if dashboard_link:
         lines.append(f"📊 **[Interactive dashboard]({dashboard_link})** · "
                      f"raw data: [`results/{run.id}.json`](results/{run.id}.json)")

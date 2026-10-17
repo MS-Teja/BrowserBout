@@ -118,6 +118,7 @@ footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
     <p class="meta">{{ run.started_at.strftime('%Y-%m-%d %H:%M') }} · {{ run.mode }} mode ·
       {{ run.machine.model }} ({{ run.machine.chip }}, {{ run.machine.memory_gb }} GB) ·
       {{ run.machine.os_version }} · {{ run.machine.power_source }}</p>
+    {% if repo_url %}<p class="meta"><a href="{{ repo_url }}#about-these-results">Caveats for these results</a> · <a href="{{ repo_url }}">Source code &amp; methodology</a></p>{% endif %}
   </header>
 
   <section class="hero" aria-label="Overall result">

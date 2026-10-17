@@ -21,6 +21,7 @@ from browserbout.report.fmt import (
     suite_title,
     unscored_notes,
 )
+from browserbout.report.readme import github_repo_url
 from browserbout.scoring import MetricResult, Scorecard, build_scorecard
 
 TEMPLATES = Path(str(resources.files("browserbout") / "report" / "templates"))
@@ -56,7 +57,9 @@ def _metric_view(r: MetricResult, browsers: list[str]) -> dict[str, Any]:
     }
 
 
-def build_view(run: Run, card: Scorecard, history: list[dict[str, Any]]) -> dict[str, Any]:
+def build_view(
+    run: Run, card: Scorecard, history: list[dict[str, Any]], repo_url: str | None = None
+) -> dict[str, Any]:
     names = browser_names(run)
     browsers = [
         {"key": b, "name": names[b], "label": browser_labels(run)[b], "slot": _series_slot(b)}
@@ -94,6 +97,7 @@ def build_view(run: Run, card: Scorecard, history: list[dict[str, Any]]) -> dict
         "fingerprint": run.artifacts.get("fingerprint", {}),
         "history": history,
         "unscored": unscored_notes(run, card),
+        "repo_url": repo_url,
     }
 
 
@@ -124,7 +128,7 @@ def write_dashboard(run: Run, card: Scorecard, out_dir: Path, results_dir: Path,
     env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=select_autoescape())
     weights = load_config(config_dir).weights
     html = env.get_template("dashboard.html.j2").render(
-        **build_view(run, card, _history(results_dir, weights))
+        **build_view(run, card, _history(results_dir, weights), github_repo_url(Path.cwd()))
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / "index.html"
