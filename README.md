@@ -11,8 +11,90 @@ both browsers with Selenium through the same workloads (industry benchmarks, rea
 privacy, stability under stress and battery drain), then scores them and declares a winner.
 
 <!-- BOUT:START -->
-_No published results yet. Run `bout run --full` to generate them._
+### Latest results — 2026-10-16
+
+_Full run on Mac17,5 (Apple A18 Pro, 8 GB), macOS 27.0.1, battery power._
+
+**🏆 Overall winner: Safari**
+
+| Category | Weight | Safari 27.0.1 | Vivaldi 8.2.4133.87 | Winner |
+|---|---|---|---|---|
+| Speed | 36% | 92.1 | **99.5** | Vivaldi |
+| Page loads | 29% | **99.0** | 65.6 | Safari |
+| Resource usage | 21% | **100.0** | 64.6 | Safari |
+| Privacy | 14% | **100.0** | 53.9 | Safari |
+| **Overall** | | **96.9** | 75.8 | **🏆 Safari** |
+
+<details><summary>All metrics</summary>
+
+| Category | Metric | Safari | Vivaldi |
+|---|---|---|---|
+| Speed | Speedometer 3.1 (web app responsiveness) ↑ | 45.1 score ±0.32 | **50.8 score ±0.05** |
+| Speed | JetStream 2.2 (JavaScript & WebAssembly) ↑ | **461 score ±2.93** | 454 score ±2.20 |
+| Speed | MotionMark 1.3 (graphics & animation) ↑ | 5,649 score ±71.7 | **6,449 score ±45.7** |
+| Page loads | Time to first byte (cold) · 13 sites ↓ | **219 ms ±23.3** | 636 ms |
+| Page loads | First contentful paint (cold) · 14 sites ↓ | **651 ms** | 1,461 ms |
+| Page loads | Largest contentful paint (cold) · 14 sites ↓ | **884 ms** | 2,196 ms |
+| Page loads | DOMContentLoaded (cold) · 14 sites ↓ | **782 ms ±64.8** | 1,951 ms |
+| Page loads | Full page load (cold) · 12 sites ↓ | **1,301 ms ±67.5** | 3,850 ms |
+| Page loads | First contentful paint (warm) · 13 sites ↓ | **339 ms ±23.3** | 348 ms |
+| Page loads | Largest contentful paint (warm) · 13 sites ↓ | 480 ms ±45.1 | **468 ms** |
+| Page loads | DOMContentLoaded (warm) · 14 sites ↓ | 367 ms ±37.9 | 368 ms |
+| Page loads | Full page load (warm) · 14 sites ↓ | 626 ms ±67.5 | **587 ms** |
+| Resource usage | Memory, idle (1 blank tab) ↓ | **954 MB ±473** | 1,124 MB ±62.7 |
+| Resource usage | CPU, idle ↓ | **0.20 % core ±0.07** | 0.80 % core ±0.03 |
+| Resource usage | Memory with 10 site tabs ↓ | **3,133 MB ±61.6** | 5,060 MB ±579 |
+| Resource usage | Background CPU with 10 site tabs ↓ | **7.60 % core ±0.55** | 38.6 % core ±8.57 |
+| Resource usage | Memory per extra tab ↓ | **227 MB ±43.4** | 394 MB ±64.2 |
+| Resource usage | Processes with 10 tabs ↓ _(info)_ | 28 ±1.75 | 32 ±6 |
+| Privacy | Tracker requests (all sites) · 18 sites ↓ | **15 requests** | 150 requests |
+| Privacy | Third-party domains contacted (all sites) · 18 sites ↓ | **53 domains ±0.25** | 140 domains |
+| Privacy | Fingerprinting surfaces exposed ↓ | **3 surfaces** | 5 surfaces |
+| Privacy | Installed fonts visible to pages ↓ | 45 fonts | 45 fonts |
+| Stability | Crashes ↓ | 0 | — |
+| Stability | Hangs (> 5s unresponsive) ↓ | 13 | — |
+| Stability | Tab responsiveness under load (p95) ↓ | 479 ms | — |
+| Stability | Time to open a tab under load (median) ↓ | 1.31 s | — |
+| Stability | Memory growth over the session ↓ | 0 MB/min | — |
+| Stability | Peak memory with 20 tabs ↓ | 2,999 MB | — |
+| Battery | Battery drain ↓ | 397 mAh/h | — |
+| Battery | Average battery power draw ↓ _(info)_ | 1.35 W | — |
+| Battery | Battery used per hour ↓ _(info)_ | 5.65 %/h | — |
+| Battery | Estimated battery life for this workload ↑ _(info)_ | 24.5 h | — |
+
+</details>
+
+> ⚠️ Stability not scored: no data for Vivaldi (see errors).
+
+> ⚠️ Battery not scored: no data for Vivaldi (see errors).
+
+Notes: 8 step(s) failed; see the raw results.
+
+📊 **[Interactive dashboard](https://ms-teja.github.io/BrowserBout/)** · raw data: [`results/20261016-214502-full.json`](results/20261016-214502-full.json)
 <!-- BOUT:END -->
+
+### About these results
+
+These come from one overnight `--full` run on 2026-10-16 (MacBook with an Apple A18 Pro and 8 GB RAM, unplugged,
+clean default profiles). Read them with these caveats in mind:
+
+- **Only 4 of 6 categories are scored.** Vivaldi's stability and battery tests failed partway through, so neither
+  category has data for both browsers. The overall score re-weights speed, page loads, resource usage and privacy.
+  For reference, Safari alone: **0 crashes and 13 hangs** in a 15-minute, 20-tab stress session, and **397 mAh/hour**
+  battery drain (about 24.5 h estimated) in the 30-minute browsing and video loop.
+- **The failures came from heavy pages that never finished loading.** On sites like CNN, The Verge, MDN and Twitch,
+  Vivaldi sometimes hit the 45-second load limit, and ChromeDriver then stopped responding ("Timed out receiving
+  message from renderer"). This run used an early version of BrowserBout that discarded the whole step when that
+  happened. Steps lost: Vivaldi page loads 3 of 5 reps, privacy 2 of 3, stability 1 of 1, battery at minute 24 of 30;
+  Safari page loads 1 of 5 (Safari hung for 10 minutes on one page).
+- **Page-load and privacy numbers only compare sites both browsers loaded**, using every rep that completed. Pages
+  that timed out aren't counted against Vivaldi in this run. Newer versions of BrowserBout recover from stuck pages
+  and score timeouts as a separate metric.
+- **Memory pressure may have contributed.** Vivaldi used about 5 GB with 10 tabs open on this 8 GB Mac (Safari
+  about 3 GB), which can slow page loads and cause timeouts. That is part of the real-world experience on this
+  machine, but results on a Mac with more memory may differ.
+- **One machine, one night, real websites.** Sites change between runs, so treat small differences as noise. The
+  "confidence" column marks metrics where the gap was larger than the run-to-run spread.
 
 ## What gets measured
 

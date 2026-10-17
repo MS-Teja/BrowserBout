@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BrowserBout — Safari vs Vivaldi</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --good: #006300;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10); --good: #0ca30c;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10); --good: #0ca30c;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+main { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 64px; }
+h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 19px; margin: 40px 0 12px; }
+h3 { font-size: 15px; margin: 0 0 10px; }
+p, .meta { color: var(--ink-2); margin: 0; }
+.meta { font-size: 13px; }
+a { color: var(--series-1); }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.hero { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 24px; }
+.tile .label { color: var(--ink-2); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.tile .value { font-size: 40px; font-weight: 650; line-height: 1.1; margin-top: 6px; }
+.tile .sub { font-size: 13px; color: var(--muted); }
+.verdict .value { font-size: 30px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--ink-2); margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.grid2 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+/* Horizontal bar rows: label, track, value. */
+.metric { padding: 12px 0; border-top: 1px solid var(--grid); }
+.metric:first-of-type { border-top: 0; padding-top: 0; }
+.metric-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-bottom: 6px; flex-wrap: wrap; }
+.metric-head .name { font-weight: 600; color: var(--ink); }
+.metric-head .hint { color: var(--muted); }
+.metric.info .name::after { content: " · info"; color: var(--muted); font-weight: 400; }
+.bar-row { display: grid; grid-template-columns: 84px 1fr minmax(110px, auto); align-items: center; gap: 10px; margin: 3px 0; }
+.bar-row .who { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track { position: relative; height: 14px; border-left: 1px solid var(--axis); }
+.bar {
+  position: absolute; inset: 0 auto 0 0; border-radius: 0 4px 4px 0; min-width: 2px;
+  outline-offset: 2px;
+}
+.bar:hover, .bar:focus-visible { filter: brightness(1.12); }
+.val { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; white-space: nowrap; }
+.val.win { color: var(--ink); font-weight: 650; }
+.val.win::before { content: "✓ "; color: var(--good); }
+
+/* Tooltip */
+.bar[data-tip]:hover::after, .bar[data-tip]:focus-visible::after {
+  content: attr(data-tip); position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 2;
+  background: var(--ink); color: var(--surface); font-size: 12px; padding: 4px 8px;
+  border-radius: 6px; white-space: nowrap; pointer-events: none;
+}
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 13px; margin-top: 10px; }
+.notes li { color: var(--ink-2); font-size: 13px; }
+footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+@media (max-width: 520px) {
+  .bar-row { grid-template-columns: 64px 1fr; }
+  .bar-row .val { grid-column: 2; text-align: left; }
+  .tile .value { font-size: 32px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🥊 BrowserBout</h1>
+    <p>Safari 27.0.1 vs Vivaldi 8.2.4133.87 — automated head-to-head on a real Mac.</p>
+    <p class="meta">2026-10-16 21:45 · full mode ·
+      Mac17,5 (Apple A18 Pro, 8.0 GB) ·
+      macOS 27.0.1 · Battery Power</p>
+    <p class="meta"><a href="https://github.com/MS-Teja/BrowserBout#about-these-results">Caveats for these results</a> · <a href="https://github.com/MS-Teja/BrowserBout">Source code &amp; methodology</a></p>
+  </header>
+
+  <section class="hero" aria-label="Overall result">
+    <div class="card tile verdict">
+      <div class="label">Overall winner</div>
+      <div class="value">🏆 Safari</div>
+      <div class="sub">by 21.1 points, weighted across 4 categories</div>
+    </div>
+    
+    <div class="card tile">
+      <div class="label"><span class="swatch" style="background: var(--series-1)"></span>Safari 27.0.1</div>
+      <div class="value">96.9</div>
+      <div class="sub">overall score / 100</div>
+    </div>
+    
+    <div class="card tile">
+      <div class="label"><span class="swatch" style="background: var(--series-2)"></span>Vivaldi 8.2.4133.87</div>
+      <div class="value">75.8</div>
+      <div class="sub">overall score / 100</div>
+    </div>
+    
+  </section>
+
+  <h2>Category scores</h2>
+  <div class="card">
+    <p class="meta" style="margin-bottom: 10px">Best browser in each metric scores 100; the others score their ratio to it. Category = mean of its metrics.</p>
+    <div class="legend"><span><span class="swatch" style="background: var(--series-1)"></span>Safari</span><span><span class="swatch" style="background: var(--series-2)"></span>Vivaldi</span></div>
+    
+    <div class="metric">
+      <div class="metric-head"><span class="name">Speed</span><span class="hint">weight 36% · Vivaldi wins</span></div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 92.12379999631766%; background: var(--series-1)" data-tip="Safari · Speed: 92.1 / 100"></div></div>
+        <span class="val">92.1</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 99.5255353199325%; background: var(--series-2)" data-tip="Vivaldi · Speed: 99.5 / 100"></div></div>
+        <span class="val win">99.5</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head"><span class="name">Page loads</span><span class="hint">weight 29% · Safari wins</span></div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 99.02911595396226%; background: var(--series-1)" data-tip="Safari · Page loads: 99.0 / 100"></div></div>
+        <span class="val win">99.0</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 65.58316559483669%; background: var(--series-2)" data-tip="Vivaldi · Page loads: 65.6 / 100"></div></div>
+        <span class="val">65.6</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head"><span class="name">Resource usage</span><span class="hint">weight 21% · Safari wins</span></div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari · Resource usage: 100.0 / 100"></div></div>
+        <span class="val win">100.0</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 64.61262187821383%; background: var(--series-2)" data-tip="Vivaldi · Resource usage: 64.6 / 100"></div></div>
+        <span class="val">64.6</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head"><span class="name">Privacy</span><span class="hint">weight 14% · Safari wins</span></div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari · Privacy: 100.0 / 100"></div></div>
+        <span class="val win">100.0</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 53.890141374289605%; background: var(--series-2)" data-tip="Vivaldi · Privacy: 53.9 / 100"></div></div>
+        <span class="val">53.9</span>
+      </div>
+      
+    </div>
+    
+  </div>
+
+  
+  <h2>Speed</h2>
+  <div class="card">
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Speedometer 3.1 (web app responsiveness)</span>
+        <span class="hint">higher is better · high confidence</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 88.77952755905513%; background: var(--series-1)" data-tip="Safari: 45.1 score ±0.32 (median of 3) · score 88.8"></div></div>
+        <span class="val">45.1 score ±0.32</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 50.8 score ±0.05 (median of 3) · score 100.0"></div></div>
+        <span class="val win">50.8 score ±0.05</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">JetStream 2.2 (JavaScript & WebAssembly)</span>
+        <span class="hint">higher is better · high confidence</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 461 score ±2.93 (median of 3) · score 100.0"></div></div>
+        <span class="val win">461 score ±2.93</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 98.57660595979753%; background: var(--series-2)" data-tip="Vivaldi: 454 score ±2.20 (median of 3) · score 98.6"></div></div>
+        <span class="val">454 score ±2.20</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">MotionMark 1.3 (graphics & animation)</span>
+        <span class="hint">higher is better · high confidence</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 87.59187242989785%; background: var(--series-1)" data-tip="Safari: 5,649 score ±71.7 (median of 3) · score 87.6"></div></div>
+        <span class="val">5,649 score ±71.7</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 6,449 score ±45.7 (median of 3) · score 100.0"></div></div>
+        <span class="val win">6,449 score ±45.7</span>
+      </div>
+      
+    </div>
+    
+  </div>
+  
+  
+  
+  <h2>Page loads</h2>
+  <div class="card">
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Time to first byte (cold) · 13 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 34.52449424826783%; background: var(--series-1)" data-tip="Safari: 219 ms ±23.3 (median of 4) · score 100.0"></div></div>
+        <span class="val win">219 ms ±23.3</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 636 ms (median of 1) · score 34.5"></div></div>
+        <span class="val">636 ms</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">First contentful paint (cold) · 14 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 44.54930682991521%; background: var(--series-1)" data-tip="Safari: 651 ms (median of 1) · score 100.0"></div></div>
+        <span class="val win">651 ms</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 1,461 ms (median of 1) · score 44.5"></div></div>
+        <span class="val">1,461 ms</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Largest contentful paint (cold) · 14 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 40.26865159744853%; background: var(--series-1)" data-tip="Safari: 884 ms (median of 1) · score 100.0"></div></div>
+        <span class="val win">884 ms</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 2,196 ms (median of 1) · score 40.3"></div></div>
+        <span class="val">2,196 ms</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">DOMContentLoaded (cold) · 14 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 40.0815937295615%; background: var(--series-1)" data-tip="Safari: 782 ms ±64.8 (median of 4) · score 100.0"></div></div>
+        <span class="val win">782 ms ±64.8</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 1,951 ms (median of 1) · score 40.1"></div></div>
+        <span class="val">1,951 ms</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Full page load (cold) · 12 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 33.80052049359596%; background: var(--series-1)" data-tip="Safari: 1,301 ms ±67.5 (median of 3) · score 100.0"></div></div>
+        <span class="val win">1,301 ms ±67.5</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 3,850 ms (median of 1) · score 33.8"></div></div>
+        <span class="val">3,850 ms</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">First contentful paint (warm) · 13 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 97.4391586442331%; background: var(--series-1)" data-tip="Safari: 339 ms ±23.3 (median of 4) · score 100.0"></div></div>
+        <span class="val win">339 ms ±23.3</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 348 ms (median of 1) · score 97.4"></div></div>
+        <span class="val">348 ms</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Largest contentful paint (warm) · 13 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 480 ms ±45.1 (median of 4) · score 97.6"></div></div>
+        <span class="val">480 ms ±45.1</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 97.60060551082523%; background: var(--series-2)" data-tip="Vivaldi: 468 ms (median of 1) · score 100.0"></div></div>
+        <span class="val win">468 ms</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">DOMContentLoaded (warm) · 14 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 99.58476481050809%; background: var(--series-1)" data-tip="Safari: 367 ms ±37.9 (median of 4) · score 100.0"></div></div>
+        <span class="val">367 ms ±37.9</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 368 ms (median of 1) · score 99.6"></div></div>
+        <span class="val">368 ms</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Full page load (warm) · 14 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 626 ms ±67.5 (median of 4) · score 93.7"></div></div>
+        <span class="val">626 ms ±67.5</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 93.66143807483512%; background: var(--series-2)" data-tip="Vivaldi: 587 ms (median of 1) · score 100.0"></div></div>
+        <span class="val win">587 ms</span>
+      </div>
+      
+    </div>
+    
+  </div>
+  
+  <details>
+    <summary>Cold page load per site</summary>
+    <div class="card" style="margin-top: 10px">
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">google</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 3.7017026762455205%; background: var(--series-1)" data-tip="Safari · google: 692 ms ±93.5"></div></div>
+          <span class="val win">692 ms ±93.5</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · google: 18,694 ms ±8,997"></div></div>
+          <span class="val">18,694 ms ±8,997</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">github</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 91.38655462175122%; background: var(--series-1)" data-tip="Safari · github: 957 ms ±29.4"></div></div>
+          <span class="val win">957 ms ±29.4</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · github: 1,047 ms ±0.15"></div></div>
+          <span class="val">1,047 ms ±0.15</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">wikipedia</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari · wikipedia: 3,623 ms ±79"></div></div>
+          <span class="val">3,623 ms ±79</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 28.902842947792156%; background: var(--series-2)" data-tip="Vivaldi · wikipedia: 1,047 ms ±179"></div></div>
+          <span class="val win">1,047 ms ±179</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">leetcode</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 73.9422041897138%; background: var(--series-1)" data-tip="Safari · leetcode: 893 ms ±35.2"></div></div>
+          <span class="val win">893 ms ±35.2</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · leetcode: 1,208 ms ±95.3"></div></div>
+          <span class="val">1,208 ms ±95.3</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">amazon</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 72.67784068619783%; background: var(--series-1)" data-tip="Safari · amazon: 1,296 ms ±24.4"></div></div>
+          <span class="val win">1,296 ms ±24.4</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · amazon: 1,784 ms"></div></div>
+          <span class="val">1,784 ms</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">nytimes</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 6.766626264680895%; background: var(--series-1)" data-tip="Safari · nytimes: 1,198 ms ±149"></div></div>
+          <span class="val win">1,198 ms ±149</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · nytimes: 17,697 ms ±8,387"></div></div>
+          <span class="val">17,697 ms ±8,387</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">bbc</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 9.809897519904128%; background: var(--series-1)" data-tip="Safari · bbc: 1,030 ms ±70"></div></div>
+          <span class="val win">1,030 ms ±70</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · bbc: 10,500 ms ±4,062"></div></div>
+          <span class="val">10,500 ms ±4,062</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">cnn</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari · cnn: 10,228 ms ±768"></div></div>
+          <span class="val">10,228 ms ±768</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">theverge</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari · theverge: 1,680 ms ±17.9"></div></div>
+          <span class="val">1,680 ms ±17.9</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">apple</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 5.633811182684694%; background: var(--series-1)" data-tip="Safari · apple: 948 ms ±40.2"></div></div>
+          <span class="val win">948 ms ±40.2</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · apple: 16,836 ms ±7,945"></div></div>
+          <span class="val">16,836 ms ±7,945</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">espn</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 14.283940300108991%; background: var(--series-1)" data-tip="Safari · espn: 2,128 ms ±141"></div></div>
+          <span class="val win">2,128 ms ±141</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · espn: 14,898 ms ±6,379"></div></div>
+          <span class="val">14,898 ms ±6,379</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">medium</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 77.01915070779384%; background: var(--series-1)" data-tip="Safari · medium: 1,758 ms ±61.1"></div></div>
+          <span class="val win">1,758 ms ±61.1</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · medium: 2,282 ms ±532"></div></div>
+          <span class="val">2,282 ms ±532</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">twitch</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 92.57839127488661%; background: var(--series-1)" data-tip="Safari · twitch: 1,086 ms ±22.6"></div></div>
+          <span class="val win">1,086 ms ±22.6</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · twitch: 1,174 ms"></div></div>
+          <span class="val">1,174 ms</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">mdn</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari · mdn: 505 ms ±156"></div></div>
+          <span class="val">505 ms ±156</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">youtube</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Safari</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 92.82129949815702%; background: var(--series-1)" data-tip="Safari · youtube: 1,785 ms ±41.5"></div></div>
+          <span class="val win">1,785 ms ±41.5</span>
+        </div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · youtube: 1,923 ms ±20.8"></div></div>
+          <span class="val">1,923 ms ±20.8</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">reddit</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · reddit: 1,115 ms ±87.2"></div></div>
+          <span class="val">1,115 ms ±87.2</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">stackoverflow</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · stackoverflow: 8,472 ms ±2,861"></div></div>
+          <span class="val">8,472 ms ±2,861</span>
+        </div>
+        
+      </div>
+      
+      <div class="metric">
+        <div class="metric-head"><span class="name">imdb</span><span class="hint">lower is better</span></div>
+        
+        <div class="bar-row">
+          <span class="who">Vivaldi</span>
+          <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi · imdb: 1,641 ms ±15.5"></div></div>
+          <span class="val">1,641 ms ±15.5</span>
+        </div>
+        
+      </div>
+      
+    </div>
+  </details>
+  
+  
+  
+  <h2>Resource usage</h2>
+  <div class="card">
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Memory, idle (1 blank tab)</span>
+        <span class="hint">lower is better · low confidence</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 84.93047830923248%; background: var(--series-1)" data-tip="Safari: 954 MB ±473 (median of 3) · score 100.0"></div></div>
+        <span class="val win">954 MB ±473</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 1,124 MB ±62.7 (median of 3) · score 84.9"></div></div>
+        <span class="val">1,124 MB ±62.7</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">CPU, idle</span>
+        <span class="hint">lower is better · high confidence</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 25.0%; background: var(--series-1)" data-tip="Safari: 0.20 % core ±0.07 (median of 3) · score 100.0"></div></div>
+        <span class="val win">0.20 % core ±0.07</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 0.80 % core ±0.03 (median of 3) · score 89.7"></div></div>
+        <span class="val">0.80 % core ±0.03</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Memory with 10 site tabs</span>
+        <span class="hint">lower is better · high confidence</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 61.92642276799363%; background: var(--series-1)" data-tip="Safari: 3,133 MB ±61.6 (median of 3) · score 100.0"></div></div>
+        <span class="val win">3,133 MB ±61.6</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 5,060 MB ±579 (median of 3) · score 61.9"></div></div>
+        <span class="val">5,060 MB ±579</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Background CPU with 10 site tabs</span>
+        <span class="hint">lower is better · high confidence</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 19.68911917098446%; background: var(--series-1)" data-tip="Safari: 7.60 % core ±0.55 (median of 3) · score 100.0"></div></div>
+        <span class="val win">7.60 % core ±0.55</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 38.6 % core ±8.57 (median of 3) · score 28.9"></div></div>
+        <span class="val">38.6 % core ±8.57</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Memory per extra tab</span>
+        <span class="hint">lower is better · high confidence</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 57.65195333124259%; background: var(--series-1)" data-tip="Safari: 227 MB ±43.4 (median of 3) · score 100.0"></div></div>
+        <span class="val win">227 MB ±43.4</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 394 MB ±64.2 (median of 3) · score 57.7"></div></div>
+        <span class="val">394 MB ±64.2</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric info">
+      <div class="metric-head">
+        <span class="name">Processes with 10 tabs</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 87.5%; background: var(--series-1)" data-tip="Safari: 28 ±1.75 (median of 3) · score 100.0"></div></div>
+        <span class="val">28 ±1.75</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 32 ±6 (median of 3) · score 87.5"></div></div>
+        <span class="val">32 ±6</span>
+      </div>
+      
+    </div>
+    
+  </div>
+  
+  
+  
+  <h2>Privacy</h2>
+  <div class="card">
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Tracker requests (all sites) · 18 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 10.0%; background: var(--series-1)" data-tip="Safari: 15 requests (median of 3) · score 100.0"></div></div>
+        <span class="val win">15 requests</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 150 requests (median of 1) · score 10.6"></div></div>
+        <span class="val">150 requests</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Third-party domains contacted (all sites) · 18 sites</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 37.857142857142854%; background: var(--series-1)" data-tip="Safari: 53 domains ±0.25 (median of 3) · score 100.0"></div></div>
+        <span class="val win">53 domains ±0.25</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 140 domains (median of 1) · score 38.3"></div></div>
+        <span class="val">140 domains</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Fingerprinting surfaces exposed</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 60.0%; background: var(--series-1)" data-tip="Safari: 3 surfaces (median of 3) · score 100.0"></div></div>
+        <span class="val win">3 surfaces</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 5 surfaces (median of 1) · score 66.7"></div></div>
+        <span class="val">5 surfaces</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Installed fonts visible to pages</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 45 fonts (median of 3) · score 100.0"></div></div>
+        <span class="val">45 fonts</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Vivaldi</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-2)" data-tip="Vivaldi: 45 fonts (median of 1) · score 100.0"></div></div>
+        <span class="val">45 fonts</span>
+      </div>
+      
+    </div>
+    
+  </div>
+  
+  
+  <details>
+    <summary>Fingerprint details</summary>
+    <div class="card table-wrap" style="margin-top: 10px">
+      <table>
+        <thead><tr><th>Attribute</th><th>Safari</th><th>Vivaldi</th></tr></thead>
+        <tbody>
+        
+          <tr><td>Canvas randomised</td><td>False</td><td>False</td></tr>
+        
+          <tr><td>Audio randomised</td><td>False</td><td>False</td></tr>
+        
+          <tr><td>GPU model exposed</td><td>True</td><td>True</td></tr>
+        
+          <tr><td>WebGL renderer</td><td>Apple GPU</td><td>ANGLE (Apple, ANGLE Metal Renderer: Apple A18 Pro, Unspecified Version)</td></tr>
+        
+          <tr><td>navigator.deviceMemory</td><td>None</td><td>8</td></tr>
+        
+          <tr><td>CPU cores reported</td><td>4</td><td>6</td></tr>
+        
+          <tr><td>UA client hints</td><td>False</td><td>True</td></tr>
+        
+          <tr><td>Same fingerprint in new session</td><td>True</td><td>—</td></tr>
+        
+          <tr><td>Fonts visible</td><td>45</td><td>45</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+  
+  
+  <h2>Stability</h2>
+  <div class="card">
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Crashes</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 0.0%; background: var(--series-1)" data-tip="Safari: 0 (median of 1)"></div></div>
+        <span class="val">0</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Hangs (> 5s unresponsive)</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 13 (median of 1)"></div></div>
+        <span class="val">13</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Tab responsiveness under load (p95)</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 479 ms (median of 1)"></div></div>
+        <span class="val">479 ms</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Time to open a tab under load (median)</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 1.31 s (median of 1)"></div></div>
+        <span class="val">1.31 s</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Memory growth over the session</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 0.0%; background: var(--series-1)" data-tip="Safari: 0 MB/min (median of 1)"></div></div>
+        <span class="val">0 MB/min</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Peak memory with 20 tabs</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 2,999 MB (median of 1)"></div></div>
+        <span class="val">2,999 MB</span>
+      </div>
+      
+    </div>
+    
+  </div>
+  
+  
+  
+  <h2>Battery</h2>
+  <div class="card">
+    
+    <div class="metric">
+      <div class="metric-head">
+        <span class="name">Battery drain</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 397 mAh/h (median of 1)"></div></div>
+        <span class="val">397 mAh/h</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric info">
+      <div class="metric-head">
+        <span class="name">Average battery power draw</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 1.35 W (median of 1)"></div></div>
+        <span class="val">1.35 W</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric info">
+      <div class="metric-head">
+        <span class="name">Battery used per hour</span>
+        <span class="hint">lower is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 5.65 %/h (median of 1)"></div></div>
+        <span class="val">5.65 %/h</span>
+      </div>
+      
+    </div>
+    
+    <div class="metric info">
+      <div class="metric-head">
+        <span class="name">Estimated battery life for this workload</span>
+        <span class="hint">higher is better</span>
+      </div>
+      
+      <div class="bar-row">
+        <span class="who">Safari</span>
+        <div class="track"><div class="bar" tabindex="0" style="width: 100.0%; background: var(--series-1)" data-tip="Safari: 24.5 h (median of 1)"></div></div>
+        <span class="val">24.5 h</span>
+      </div>
+      
+    </div>
+    
+  </div>
+  
+  
+  
+
+  
+  <h2>Notes</h2>
+  <div class="card"><ul class="notes">
+    <li><strong>Stability not scored: no data for Vivaldi (see errors).</strong></li><li><strong>Battery not scored: no data for Vivaldi (see errors).</strong></li>
+    
+    <li>Vivaldi · pageload · rep 1: TimeoutException: Message: timeout: Timed out receiving message from renderer: 45.000</li><li>Vivaldi · pageload · rep 4: TimeoutException: Message: timeout: Timed out receiving message from renderer: 45.000</li><li>Safari · pageload · rep 5: ReadTimeoutError: HTTPConnectionPool(host='localhost', port=54434): Read timed out. (read timeout=120)</li><li>Vivaldi · pageload · rep 5: TimeoutException: Message: timeout: Timed out receiving message from renderer: 45.000</li><li>Vivaldi · privacy · rep 1: TimeoutException: Message: timeout: Timed out receiving message from renderer: 45.000</li><li>Vivaldi · privacy · rep 2: TimeoutException: Message: timeout: Timed out receiving message from renderer: 45.000</li><li>Vivaldi · stability · rep 1: TimeoutException: Message: timeout: Timed out receiving message from renderer: 45.000</li><li>Vivaldi · battery · rep 1: TimeoutException: Message: timeout: Timed out receiving message from renderer: 45.000</li>
+  </ul></div>
+  
+
+  
+  <h2>Run history</h2>
+  <div class="card table-wrap">
+    <table>
+      <thead><tr><th>Run</th><th>Mode</th><th>Versions</th><th>Winner</th><th>Scores</th></tr></thead>
+      <tbody><tr><td>2026-10-16 21:45</td><td>full</td><td>Safari 27.0.1 vs Vivaldi 8.2.4133.87</td><td>Safari</td><td>Safari 96.9 / Vivaldi 75.8</td></tr></tbody>
+    </table>
+  </div>
+  
+
+  <footer>
+    Values are medians across repetitions; ± is half the interquartile range. Browsers run with clean default
+    profiles, alternating launch order each repetition. Generated by BrowserBout.
+  </footer>
+</main>
+</body>
+</html>
