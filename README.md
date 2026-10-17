@@ -87,9 +87,13 @@ clean default profiles). Read them with these caveats in mind:
   message from renderer"). This run used an early version of BrowserBout that discarded the whole step when that
   happened. Steps lost: Vivaldi page loads 3 of 5 reps, privacy 2 of 3, stability 1 of 1, battery at minute 24 of 30;
   Safari page loads 1 of 5 (Safari hung for 10 minutes on one page).
+- **✅ This is fixed.** Since [`7686739`](https://github.com/MS-Teja/BrowserBout/commit/7686739), BrowserBout restarts
+  a stuck browser with a fresh profile and carries on instead of discarding the step. A stuck page now counts
+  against the browser rather than erasing its data: page loads score "pages that didn't finish loading", and
+  stability scores "times the browser stopped responding and was restarted". The next full run should produce
+  stability and battery results for both browsers. These published results predate the fix and haven't been re-run.
 - **Page-load and privacy numbers only compare sites both browsers loaded**, using every rep that completed. Pages
-  that timed out aren't counted against Vivaldi in this run. Newer versions of BrowserBout recover from stuck pages
-  and score timeouts as a separate metric.
+  that timed out aren't counted against Vivaldi in this run.
 - **Memory pressure may have contributed.** Vivaldi used about 5 GB with 10 tabs open on this 8 GB Mac (Safari
   about 3 GB), which can slow page loads and cause timeouts. That is part of the real-world experience on this
   machine, but results on a Mac with more memory may differ.
