@@ -7,14 +7,17 @@ import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeVar
 
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.remote.webdriver import WebDriver
+from urllib3.exceptions import ReadTimeoutError
 
 from browserbout.browsers.base import Session
 from browserbout.config import Config
 from browserbout.models import Aggregate, MetricValue, Mode
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -95,3 +98,27 @@ def is_crash(exc: WebDriverException) -> bool:
         s in msg for s in ("tab crashed", "invalid session id", "session deleted", "no such window",
                            "disconnected", "not connected", "session is not created")
     )
+
+
+def attempt(session: Session, ctx: SuiteContext, what: str, step: Callable[[], T]) -> T | None:
+    """Run one browser step; if it leaves the browser stuck, restart it and return None.
+
+    `step` must return a non-None value on success.
+
+    A page that never finishes loading can wedge chromedriver: every later command then
+    fails with "Timed out receiving message from renderer". Instead of losing the whole
+    repetition, the suite records what it can, gets a fresh session and carries on.
+    """
+    try:
+        return step()
+    except (TimeoutException, ReadTimeoutError, TimeoutError) as exc:
+        reason = "stopped responding"
+        detail = str(getattr(exc, "msg", None) or exc)
+    except WebDriverException as exc:
+        if not is_crash(exc):
+            raise
+        reason = "crashed"
+        detail = str(exc.msg or exc)
+    ctx.log(f"{what}: browser {reason} ({detail.strip().splitlines()[0][:120]}); restarting it")
+    session.restart()
+    return None

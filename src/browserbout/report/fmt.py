@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from browserbout.models import Run
-from browserbout.scoring import MetricResult, Stat
+from browserbout.scoring import MetricResult, Scorecard, Stat
 from browserbout.suites.registry import SUITES
 
 
@@ -46,3 +46,13 @@ def metric_label(result: MetricResult) -> str:
 
 def direction(result: MetricResult) -> str:
     return "↑" if result.higher_is_better else "↓"
+
+
+def unscored_notes(run: Run, card: Scorecard) -> list[str]:
+    """Explain categories that ran but couldn't be scored."""
+    names = browser_names(run)
+    return [
+        f"{suite_title(suite)} not scored: no data for "
+        f"{', '.join(names.get(b, b) for b in missing)} (see errors)."
+        for suite, missing in card.unscored.items()
+    ]

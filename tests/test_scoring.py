@@ -111,3 +111,35 @@ def test_near_equal_scores_are_a_tie() -> None:
     ])
     card = build_scorecard(run, {"speed": 1})
     assert card.winner is None
+
+
+def test_site_missing_from_one_rep_keeps_the_rest() -> None:
+    run = make_run([
+        measurement("safari", "pageload", "cold_load", 100, item="a", rep=0),
+        measurement("safari", "pageload", "cold_load", 400, item="b", rep=0),
+        measurement("safari", "pageload", "cold_load", 120, item="a", rep=1),
+        # b failed in Safari's rep 1; rep 1's value for a must still count.
+        measurement("safari", "pageload", "cold_load", 400, item="b", rep=1),
+        measurement("vivaldi", "pageload", "cold_load", 200, item="a", rep=0),
+        measurement("vivaldi", "pageload", "cold_load", 800, item="b", rep=0),
+        measurement("vivaldi", "pageload", "cold_load", 220, item="a", rep=1),
+    ])
+    load = build_scorecard(run, {"pageload": 1}).categories[0].metrics[0]
+    assert load.items_compared == 2
+    assert round(load.stats["safari"].median) == round((110 * 400) ** 0.5)
+    assert round(load.stats["vivaldi"].median) == round((210 * 800) ** 0.5)
+    assert load.winner == "safari"
+
+
+def test_category_without_data_for_a_browser_is_reported() -> None:
+    run = make_run(
+        [
+            measurement("safari", "speed", "x", 10, higher_is_better=True),
+            measurement("vivaldi", "speed", "x", 5, higher_is_better=True),
+            measurement("safari", "battery", "mah_per_hour", 400),
+        ],
+        suites=["speed", "battery"],
+    )
+    card = build_scorecard(run, {"speed": 1, "battery": 1})
+    assert card.unscored == {"battery": ["vivaldi"]}
+    assert card.weights == {"speed": 100}

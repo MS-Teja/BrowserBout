@@ -209,9 +209,10 @@ footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
   {% endif %}
   {% endfor %}
 
-  {% if run.notes or run.errors %}
+  {% if run.notes or run.errors or unscored %}
   <h2>Notes</h2>
   <div class="card"><ul class="notes">
+    {% for n in unscored %}<li><strong>{{ n }}</strong></li>{% endfor %}
     {% for n in run.notes %}<li>{{ n }}</li>{% endfor %}
     {% for e in run.errors %}<li>{{ names.get(e.browser, e.browser) }} · {{ e.suite }} · rep {{ e.rep + 1 }}: {{ e.message.splitlines()[0][:200] }}</li>{% endfor %}
   </ul></div>

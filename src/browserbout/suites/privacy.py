@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 from browserbout.browsers.base import Session
 from browserbout.config import Config
 from browserbout.models import MetricValue, Mode
-from browserbout.suites.base import Suite, SuiteContext, load, metric
+from browserbout.suites.base import Suite, SuiteContext, attempt, load, metric
 
 ASSETS = Path(str(resources.files("browserbout") / "assets"))
 
@@ -102,17 +102,19 @@ class PrivacySuite(Suite):
         return config.suites.privacy.reps(mode)
 
     def run(self, session: Session, ctx: SuiteContext) -> list[MetricValue]:
-        return self._trackers(session, ctx) + self._fingerprint(session, ctx)
+        trackers = self._trackers(session, ctx)
+        fingerprint = attempt(session, ctx, "fingerprint", lambda: self._fingerprint(session, ctx))
+        return trackers + (fingerprint or [])
 
     def _trackers(self, session: Session, ctx: SuiteContext) -> list[MetricValue]:
         trackers = TrackerList.bundled()
         seen: dict[str, list[str]] = {}
         results = []
         for site in ctx.config.sites_for(ctx.mode):
-            if not load(session.driver, site.url, 45):
-                ctx.log(f"{site.name} timed out; counting what loaded")
-            time.sleep(ctx.config.suites.privacy.settle_seconds)
-            urls: list[str] = session.driver.execute_script(RESOURCES_JS) or []
+            fetch = functools.partial(self._requests, session, site.url, ctx)
+            urls = attempt(session, ctx, site.name, fetch)
+            if urls is None:
+                continue
             own = site_domain(site.url)
             matched = [rule for u in urls if (rule := trackers.match(u))]
             third_party = {site_domain(u) for u in urls if u.startswith("http")} - {own}
@@ -128,6 +130,13 @@ class PrivacySuite(Suite):
             ctx.log(f"{site.name}: {len(matched)} tracker requests, {len(third_party)} 3rd parties")
         ctx.artifacts.setdefault("trackers", {})[ctx.browser] = seen
         return results
+
+    def _requests(self, session: Session, url: str, ctx: SuiteContext) -> list[str]:
+        """URLs of every resource the page requested."""
+        if not load(session.driver, url, 45):
+            ctx.log(f"{url} timed out; counting what loaded")
+        time.sleep(ctx.config.suites.privacy.settle_seconds)
+        return list(session.driver.execute_script(RESOURCES_JS) or [])
 
     def _fingerprint(self, session: Session, ctx: SuiteContext) -> list[MetricValue]:
         session.driver.set_script_timeout(30)

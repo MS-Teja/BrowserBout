@@ -2,7 +2,9 @@
 
 1. Repetitions are summarised as median and interquartile range (IQR).
 2. Per-item metrics (one value per site) are combined over the items *every* browser
-   completed, so a site that timed out for one browser can't skew the comparison.
+   completed, so a site that timed out for one browser can't skew the comparison
+   (timeouts are scored separately). Each item's median across repetitions is used, so
+   a site missing from one repetition doesn't discard the rest of that repetition.
 3. Each scored metric gives the best browser 100 and the others a ratio of it.
 4. A category score is the mean of its metric scores; the overall score is the
    weighted mean of category scores.
@@ -72,6 +74,8 @@ class Scorecard:
     weights: dict[str, float]
     # Per-item breakdowns (e.g. each site), for detailed reports; not scored directly.
     items: list[MetricResult]
+    # Categories left out of the overall score -> browsers that have no data for them.
+    unscored: dict[str, list[str]] = field(default_factory=dict)
 
 
 def _aggregate(values: list[float], how: Aggregate) -> float:
@@ -158,17 +162,16 @@ def build_scorecard(run: Run, weights: dict[str, float]) -> Scorecard:
         # Only compare items every browser has a value for.
         present = [{k[2] for k in keys if k[2] is not None and grouped[k].get(b)} for b in browsers]
         common = sorted(set.intersection(*present)) if present else []
-        per_rep: dict[str, list[float]] = {}
-        for b in browsers:
-            reps = {r for k in keys for r in grouped[k].get(b, {})}
-            values = []
-            for rep in sorted(reps):
-                rep_values = [grouped[(suite, name, i)][b].get(rep) for i in common]
-                if common and all(v is not None for v in rep_values):
-                    values.append(_aggregate([v for v in rep_values if v is not None], m.aggregate))
-            if values:
-                per_rep[b] = values
-        summary = base(m, None, per_rep)
+        summary = base(m, None, {})
+        if common:
+            for b in browsers:
+                item_stats = [Stat.of(list(grouped[(suite, name, i)][b].values())) for i in common]
+                summary.stats[b] = Stat(
+                    median=_aggregate([s.median for s in item_stats], m.aggregate),
+                    q1=_aggregate([s.q1 for s in item_stats], m.aggregate),
+                    q3=_aggregate([s.q3 for s in item_stats], m.aggregate),
+                    n=min(s.n for s in item_stats),
+                )
         summary.items_compared = len(common)
         summaries.append(_finish(summary))
 
@@ -191,4 +194,14 @@ def build_scorecard(run: Run, weights: dict[str, float]) -> Scorecard:
                 c.scores[b] * used[c.suite] for c in categories if c.suite in used
             ) / total
     norm_weights = {k: v / total * 100 for k, v in used.items()} if total else {}
-    return Scorecard(browsers, categories, overall, _winner(overall), norm_weights, items)
+    with_data = defaultdict(set)
+    for m in run.measurements:
+        with_data[m.suite].add(m.browser)
+    unscored = {
+        suite: [b for b in browsers if b not in with_data[suite]]
+        for suite in run.suites
+        if suite not in used and any(b not in with_data[suite] for b in browsers)
+    }
+    return Scorecard(
+        browsers, categories, overall, _winner(overall), norm_weights, items, unscored
+    )

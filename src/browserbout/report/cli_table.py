@@ -17,6 +17,7 @@ from browserbout.report.fmt import (
     fmt_stat,
     metric_label,
     suite_title,
+    unscored_notes,
 )
 from browserbout.scoring import Scorecard
 
@@ -92,7 +93,8 @@ def render(run: Run, card: Scorecard, console: Console) -> None:
     elif card.overall:
         console.print("\n🤝 It's a tie overall.\n")
 
-    extras = [f"• {n}" for n in run.notes] + [
+    extras = [f"• [yellow]{n}[/]" for n in unscored_notes(run, card)]
+    extras += [f"• {n}" for n in run.notes] + [
         f"• [red]{names.get(e.browser, e.browser)} / {suite_title(e.suite)} rep {e.rep + 1}:[/] "
         f"{e.message.splitlines()[0][:200]}"
         for e in run.errors

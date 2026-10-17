@@ -14,6 +14,7 @@ from browserbout.report.fmt import (
     fmt_stat,
     metric_label,
     suite_title,
+    unscored_notes,
 )
 from browserbout.scoring import Scorecard
 
@@ -85,6 +86,8 @@ def render_markdown(run: Run, card: Scorecard, dashboard_link: str | None = None
                 + " | ".join(cells) + " |"
             )
     lines += ["", "</details>", ""]
+    for note in unscored_notes(run, card):
+        lines += [f"> ⚠️ {note}", ""]
     if run.notes or run.errors:
         lines.append("Notes: " + " ".join(run.notes) + (
             f" {len(run.errors)} step(s) failed; see the raw results." if run.errors else ""

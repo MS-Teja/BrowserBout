@@ -19,6 +19,7 @@ from browserbout.report.fmt import (
     fmt_stat,
     metric_label,
     suite_title,
+    unscored_notes,
 )
 from browserbout.scoring import MetricResult, Scorecard, build_scorecard
 
@@ -92,6 +93,7 @@ def build_view(run: Run, card: Scorecard, history: list[dict[str, Any]]) -> dict
         "sites": sites,
         "fingerprint": run.artifacts.get("fingerprint", {}),
         "history": history,
+        "unscored": unscored_notes(run, card),
     }
 
 

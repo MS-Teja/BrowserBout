@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import statistics
 import threading
 import time
+from functools import partial
 
-from browserbout import stats
 from browserbout.browsers.base import Session
 from browserbout.config import Config
 from browserbout.metrics.power import read_battery
 from browserbout.models import MetricValue, Mode
-from browserbout.suites.base import Suite, SuiteContext, load, metric
+from browserbout.suites.base import Suite, SuiteContext, attempt, load, metric
 
 CYCLE_SECONDS = 120
 SITE_DWELL_SECONDS = 12
@@ -65,19 +66,33 @@ class BatterySuite(Suite):
         start = time.monotonic()
         try:
             site_index = 0
+            restarts = 0
+
+            def video() -> bool:
+                return load(session.driver, cfg.video_url, 45)
+
+            def browse(url: str) -> bool:
+                load(session.driver, url, 45)
+                for _ in range(4):
+                    session.driver.execute_script("window.scrollBy(0, 800);")
+                    time.sleep(SITE_DWELL_SECONDS / 4)
+                return True
+
             while time.monotonic() - start < duration and not plugged_in.is_set():
-                load(session.driver, cfg.video_url, 45)
+                # A stuck page restarts the browser instead of ending the measurement.
+                if attempt(session, ctx, "video", video) is None:
+                    restarts += 1
                 time.sleep(CYCLE_SECONDS * cfg.video_share)
                 browse_until = time.monotonic() + CYCLE_SECONDS * (1 - cfg.video_share)
                 while time.monotonic() < browse_until:
-                    load(session.driver, sites[site_index % len(sites)].url, 45)
+                    site = sites[site_index % len(sites)]
                     site_index += 1
-                    for _ in range(4):
-                        session.driver.execute_script("window.scrollBy(0, 800);")
-                        time.sleep(SITE_DWELL_SECONDS / 4)
+                    if attempt(session, ctx, site.name, partial(browse, site.url)) is None:
+                        restarts += 1
                 elapsed_min = (time.monotonic() - start) / 60
                 ctx.log(f"{elapsed_min:.0f}/{duration / 60:.0f} min, "
-                        f"avg {stats.median(watts) if watts else 0:.2f} W")
+                        f"avg {statistics.fmean(watts) if watts else 0:.2f} W, "
+                        f"{restarts} restarts")
         finally:
             stop.set()
             thread.join(timeout=SAMPLE_SECONDS * 2)
